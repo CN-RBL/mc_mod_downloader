@@ -35,7 +35,7 @@ jobs:
           mode: onefile
           show-memory: true
           windows-uac-admin: true
-          lto: true
+          lto: yes
           windows-console-mode: attach
           python-flag: no_docstrings
           jobs: all
@@ -76,7 +76,7 @@ jobs:
           mode: onefile
           show-memory: true
           jobs: all
-          lto: true
+          lto: yes
           python-flag: no_docstrings
           follow-imports: true
           output-filename: mcmdr.bin
