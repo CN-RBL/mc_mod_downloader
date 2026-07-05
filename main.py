@@ -11,7 +11,8 @@ from rich.progress import Progress, BarColumn, TextColumn, TimeRemainingColumn, 
 
 BASE_URL = "https://api.modrinth.com/v2"
 console = Console()
-
+__version__ = "v1.0.0"
+__author__ = "红蓝灯（RBL）"
 
 async def search_project(session: aiohttp.ClientSession, query: str) -> List[dict]:
     url = f"{BASE_URL}/search"
@@ -34,7 +35,7 @@ async def get_project_versions(
 ) -> List[dict]:
     url = f"{BASE_URL}/project/{project_id}/version"
     try:
-        async with session.get(url, timeout=10) as resp:
+        async with session.get(url, timeout=15) as resp:
             resp.raise_for_status()
             versions = await resp.json()
             filtered = []
@@ -71,15 +72,15 @@ def read_mcmds_file(file_path: str) -> Tuple[str, str, str, List[str]]:
         lines = [line.strip() for line in f if line.strip()]
 
     if len(lines) < 5:
-        raise ValueError("格式错误: 至少需要 版本, 目录, 加载器, ---, 第一个模组名")
+        raise ValueError("格式错误: 至少需要 版本, 目录, 加载器, ---, 和至少一个模组名")
 
     mc_version = lines[0]
-    save_dir = lines[1]
-    loader = lines[2]
+    loader = lines[1]
+    save_dir = lines[2]
     if not loader:
-        raise ValueError("加载器不能为空")
+        raise ValueError("格式错误：加载器不能为空")
     if lines[3] != "---":
-        raise ValueError("第四行必须是 '---' 分隔符")
+        raise ValueError("格式错误：第四行必须是 '---' 分隔符")
     mod_list = lines[4:]
 
     if not os.path.isabs(save_dir):
@@ -186,12 +187,14 @@ async def batch_download(
     loader: str,
     concurrency: int,
 ):
-    console.rule("[bold blue]批量下载[/bold blue]")
-    console.print(f"MC 版本: [cyan]{mc_version}[/cyan]")
-    console.print(f"保存目录: [cyan]{save_dir}[/cyan]")
-    console.print(f"加载器:   [cyan]{loader}[/cyan]")
-    console.print(f"模组数:   [cyan]{len(mod_list)}[/cyan]")
-    console.print(f"并发数:   [cyan]{concurrency}[/cyan]")
+    console.rule("[bold blue]MCModDownloader 批量下载[/bold blue]")
+    console.print(f"程序版本:   [cyan]{__version__}[/cyan]")
+    console.print(f"程序作者:   [cyan]{__author__}[/cyan]")
+    console.print(f"MC 版本:   [cyan]{mc_version}[/cyan]")
+    console.print(f"加载器:    [cyan]{loader}[/cyan]")
+    console.print(f"模组数:    [cyan]{len(mod_list)}[/cyan]")
+    console.print(f"并发数:    [cyan]{concurrency}[/cyan]")
+    console.print(f"保存目录:   [cyan]{save_dir}[/cyan]")
 
     with Progress(
         TextColumn("[progress.description]{task.description}"),
@@ -231,15 +234,17 @@ async def batch_download(
                 success_count += 1
 
     console.rule("[bold green]完成[/bold green]")
-    console.print(f"✅ 成功: [green]{success_count}[/green] / 总数: {len(mod_list)}")
+    console.print(f"✅ 成功: [green]{success_count}[/green] / 总数: {len(mod_list)} （成功率：[green]{success_count / len(mod_list) * 100:.2f}%[/green]）")
 
 
 async def single_download(mod_name: str, mc_version: str, save_dir: str, loader: str):
-    console.rule("[bold blue]单模组下载[/bold blue]")
-    console.print(f"模组:      [cyan]{mod_name}[/cyan]")
+    console.rule("[bold blue]MCModDownloader 单模组下载[/bold blue]")
+    console.print(f"程序版本:   [cyan]{__version__}[/cyan]")
+    console.print(f"程序作者:   [cyan]{__author__}[/cyan]")
     console.print(f"MC 版本:   [cyan]{mc_version}[/cyan]")
-    console.print(f"加载器:    [cyan]{loader}[/cyan]")
-    console.print(f"保存目录:  [cyan]{save_dir}[/cyan]")
+    console.print(f"加载器:     [cyan]{loader}[/cyan]")
+    console.print(f"模组:      [cyan]{mod_name}[/cyan]")
+    console.print(f"保存目录:   [cyan]{save_dir}[/cyan]")
 
     with Progress(
         TextColumn("[progress.description]{task.description}"),
@@ -266,8 +271,8 @@ async def single_download(mod_name: str, mc_version: str, save_dir: str, loader:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="MC Mod 下载器")
-    parser.add_argument("args", nargs="*", help="位置参数: <模组名> <MC版本> <加载器> [保存目录]")
+    parser = argparse.ArgumentParser(description="MCMod Downloader")
+    parser.add_argument("args", nargs="*", help="位置参数: <模组名> <MC版本> <模组加载器> [保存目录]")
     parser.add_argument("-f", "--file", help="批量文件 (.mcmds)")
     parser.add_argument("-c", "--concurrency", type=int, default=4, help="并发数 (默认 4)")
 
@@ -287,8 +292,8 @@ def main():
         asyncio.run(batch_download(mod_list, mc_version, save_dir, loader, args.concurrency))
     else:
         if len(args.args) < 3:
-            console.print("[red]单模组模式需要提供: 模组名 MC版本 加载器 [保存目录][/red]")
-            console.print("示例: python mod_downloader.py sodium 1.20.1 fabric ./mods")
+            console.print("[red]单模组模式需要提供: 模组名 MC版本 模组加载器 [保存目录][/red]")
+            console.print("示例: mcmder sodium 1.20.1 fabric ./mods")
             sys.exit(1)
 
         mod_name = args.args[0]
