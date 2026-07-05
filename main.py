@@ -47,7 +47,7 @@ async def get_project_versions(
                 filtered.append(v)
             return filtered
     except Exception as e:
-        console.print(f"[red]获取版本列表失败: {e}[/red]")
+        console.print(f"[red]❌ 获取版本列表失败: {e}[/red]")
         return []
 
 
@@ -72,13 +72,10 @@ def read_mcmds_file(file_path: str) -> Tuple[str, str, str, List[str]]:
         lines = [line.strip() for line in f if line.strip()]
 
     if len(lines) < 5:
-        raise ValueError("格式错误: 至少需要 版本, 目录, 加载器, ---, 和至少一个模组名")
+        raise ValueError("格式错误: 至少需要 MC版本, 加载器, 保存目录, ---, 和至少一个模组名")
 
-    mc_version = lines[0]
-    loader = lines[1]
-    save_dir = lines[2]
-    if not loader:
-        raise ValueError("格式错误：加载器不能为空")
+    mc_version, loader, save_dir = lines[:3]
+
     if lines[3] != "---":
         raise ValueError("格式错误：第四行必须是 '---' 分隔符")
     mod_list = lines[4:]
@@ -113,7 +110,7 @@ async def download_file(
             progress.update(task_id, completed=total, total=total)
             return True
     except Exception as e:
-        console.print(f"[red]下载失败 {os.path.basename(save_path)}: {e}[/red]")
+        console.print(f"[red]❌ 下载失败 {os.path.basename(save_path)}: {e}[/red]")
         return False
 
 
@@ -126,32 +123,32 @@ async def download_mod(
     progress: Progress,
     task_id: int,
 ) -> Tuple[bool, str, Optional[str], Optional[str]]:
-    progress.update(task_id, description=f"[cyan]搜索 {mod_name}[/cyan]")
+    progress.update(task_id, description=f"[cyan]🔎 搜索 {mod_name}[/cyan]")
 
     projects = await search_project(session, mod_name)
     if not projects:
-        progress.update(task_id, description=f"[red]未找到 {mod_name}[/red]")
+        progress.update(task_id, description=f"[red]❌ 未找到 {mod_name}[/red]")
         return False, mod_name, None, None
 
     selected = projects[0]
     project_id = selected.get("project_id")
     title = selected.get("title", mod_name)
 
-    progress.update(task_id, description=f"[cyan]获取版本 {title}[/cyan]")
+    progress.update(task_id, description=f"[cyan]🔎 获取版本 {title}[/cyan]")
     versions = await get_project_versions(session, project_id, mc_version, loader)
     if not versions:
-        progress.update(task_id, description=f"[red]无适用版本 {title}[/red]")
+        progress.update(task_id, description=f"[red]❌ 无适用版本 {title}[/red]")
         return False, title, None, None
 
     version = get_stable_version(versions)
     if not version:
-        progress.update(task_id, description=f"[red]无稳定版 {title}[/red]")
+        progress.update(task_id, description=f"[red]❌ 无稳定版 {title}[/red]")
         return False, title, None, None
 
     version_number = version.get("version_number", "unknown")
     files = version.get("files", [])
     if not files:
-        progress.update(task_id, description=f"[red]无文件 {title}[/red]")
+        progress.update(task_id, description=f"[red]❌ 无文件 {title}[/red]")
         return False, title, version_number, None
 
     jar_file = None
@@ -165,15 +162,15 @@ async def download_mod(
     download_url = jar_file.get("url")
     filename = jar_file.get("filename", f"{mod_name}-{version_number}.jar")
     if not download_url:
-        progress.update(task_id, description=f"[red]无下载链接 {title}[/red]")
+        progress.update(task_id, description=f"[red]❌ 无下载链接 {title}[/red]")
         return False, title, version_number, None
 
     save_path = os.path.join(save_dir, filename)
-    progress.update(task_id, description=f"[yellow]下载 {filename}[/yellow]")
+    progress.update(task_id, description=f"[yellow]⬇️ 下载 {filename}[/yellow]")
 
     success = await download_file(session, download_url, save_path, progress, task_id)
     if success:
-        progress.update(task_id, description=f"[green]✅ {title} {version_number}[/green]")
+        progress.update(task_id, description=f"[green]✅ {title} {version_number} 完成[/green]")
         return True, title, version_number, save_path
     else:
         progress.update(task_id, description=f"[red]❌ {title} 下载失败[/red]")
@@ -210,7 +207,7 @@ async def batch_download(
             tasks = []
             for mod in mod_list:
                 task_id = progress.add_task(
-                    description=f"[white]等待 {mod}[/white]",
+                    description=f"[white]⏳ 等待 {mod}[/white]",
                     total=None,
                     start=False,
                 )
@@ -229,12 +226,15 @@ async def batch_download(
         success_count = 0
         for res in results:
             if isinstance(res, Exception):
-                console.print(f"[red]任务异常: {res}[/red]")
+                console.print(f"[red]❌ 任务异常: {res}[/red]")
             elif res[0]:
                 success_count += 1
 
     console.rule("[bold green]完成[/bold green]")
-    console.print(f"✅ 成功: [green]{success_count}[/green] / 总数: {len(mod_list)} （成功率：[green]{success_count / len(mod_list) * 100:.2f}%[/green]）")
+    if success_count:
+        console.print(f"[green]✅[/green] 成功: [green]{success_count}[/green] / 总数: {len(mod_list)} （成功率：[green]{success_count / len(mod_list) * 100:.2f}%[/green]）")
+    else:
+        console.print(f"[red]❌[/red] 全部失败 / 总数：{len(mod_list)} (成功率：[red]0%[/red])")
 
 
 async def single_download(mod_name: str, mc_version: str, save_dir: str, loader: str):
