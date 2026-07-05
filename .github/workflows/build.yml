@@ -11,6 +11,7 @@ on:
 jobs:
   # ==================== 构建 Windows ====================
   build-windows:
+    if: ${{ !contains(join(github.event.commits.*.message), 'skip') }}
     runs-on: windows-latest
     steps:
       - name: Checkout code
@@ -32,6 +33,15 @@ jobs:
         with:
           script-name: main.py
           mode: onefile
+          show-memory: true
+          windows-uac-admin: true
+          lto: true
+          windows-console-mode: attach
+          python-flag: no_docstrings
+          jobs: all
+          follow-imports: true
+          output-filename: mcmdr.exe
+          verbose: true
           assume-yes-for-downloads: true
 
       - name: Upload Windows artifact
@@ -42,6 +52,7 @@ jobs:
 
   # ==================== 构建 Linux ====================
   build-linux:
+    if: ${{ !contains(join(github.event.commits.*.message), 'skip') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -63,6 +74,13 @@ jobs:
         with:
           script-name: main.py
           mode: onefile
+          show-memory: true
+          jobs: all
+          lto: true
+          python-flag: no_docstrings
+          follow-imports: true
+          output-filename: mcmdr.bin
+          verbose: true
           assume-yes-for-downloads: true
 
       - name: Upload Linux artifact
