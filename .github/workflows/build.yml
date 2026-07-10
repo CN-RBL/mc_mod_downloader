@@ -1,12 +1,8 @@
 # .github/workflows/build.yml
 name: Build Python Executables
 
-# 触发条件：仅在 push 到 main 分支或推送 v* 标签时触发
 on:
   push
-
-# 如果你希望任何分支的 push 都触发，可以把 branches 删掉，只保留 push: {} 即可。
-# 但通常推荐只对主分支和标签构建，避免浪费资源。
 
 jobs:
   # ==================== 构建 Windows ====================
@@ -15,10 +11,10 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.14'
           architecture: 'x64'
@@ -39,16 +35,50 @@ jobs:
           windows-console-mode: attach
           python-flag: no_docstrings
           jobs: all
-          follow-imports: true
-          output-filename: mcmdr.exe
-          verbose: true
           assume-yes-for-downloads: true
 
       - name: Upload Windows artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: my-app-windows
-          path: build/main.exe
+          name: windows
+          path: mcmdr.exe
+
+  build-windows-x32:
+    if: ${{ !contains(join(github.event.commits.*.message), 'skip') }}
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          architecture: 'x32'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build Windows Executable
+        uses: Nuitka/Nuitka-Action@main
+        with:
+          script-name: main.py
+          mode: onefile
+          show-memory: true
+          windows-uac-admin: true
+          lto: yes
+          windows-console-mode: attach
+          python-flag: no_docstrings
+          jobs: all
+          assume-yes-for-downloads: true
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-x32
+          path: mcmdr-x32.exe
 
   # ==================== 构建 Linux ====================
   build-linux:
@@ -56,10 +86,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.14'
           architecture: 'x64'
@@ -78,13 +108,10 @@ jobs:
           jobs: all
           lto: yes
           python-flag: no_docstrings
-          follow-imports: true
-          output-filename: mcmdr.bin
-          verbose: true
           assume-yes-for-downloads: true
 
       - name: Upload Linux artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: my-app-linux
-          path: build/main.bin
+          name: linux
+          path: mcmdr.bin
