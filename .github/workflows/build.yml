@@ -34,7 +34,7 @@ jobs:
           lto: yes
           windows-console-mode: attach
           python-flag: no_docstrings
-          jobs: all
+          jobs: 64
           assume-yes-for-downloads: true
 
       - name: 重命名文件
@@ -76,7 +76,7 @@ jobs:
           lto: yes
           windows-console-mode: attach
           python-flag: no_docstrings
-          jobs: all
+          jobs: 64
           assume-yes-for-downloads: true
 
       - name: 重命名文件
@@ -114,7 +114,7 @@ jobs:
           script-name: main.py
           mode: onefile
           show-memory: true
-          jobs: all
+          jobs: 64
           lto: yes
           python-flag: no_docstrings
           assume-yes-for-downloads: true
